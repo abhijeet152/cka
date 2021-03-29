@@ -459,30 +459,87 @@ kubeadm version
 ~~~~~~~~~~~~~~~~~~~~~~~~
 	Cluster upgrade
 ~~~~~~~~~~~~~~~~~~~~~~~~
-\\
-kubectl upgrade plan
-kubectl drain controlplane
-apt-get upgrade -y kubeadm=1.12.0-00		### upgrade one level up at a time ; upgrade kubeadm
-kubeadm upgrade apply v1.12.0		### upgrade on master server
+kubectl cluster-info
 
-kubectl get nodes		### if kubelet is present on master node,it will still show old version, until we upgrade kubelet
+kubeadm version		### to check the current version
 
-apt-get upgrade -y kubelet=1.12.0-00		## upgrade kubelet
+kubectl version --short		### to check the version in short
 
-systemctl daemon-reload
-systemctl restart kubelet
+kubeadm upgrade plan		### to check upgrade available
 
-~~~
-kubectl drain node-1		### run only from master node.
-apt-get upgrade -y kubeadm=1.12.0-00
-apt-get upgrade -y kubelet=1.12.0-00
-kubeadm upgrade node config --kubelet-version v1.12.0		### upgrade worker node 
-systemctl restart kubelet
-kubectl uncordon node-1
-~~~
-//
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	Upgrade master node
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+kubectl drain controlplane --ignore-daemonsets
 
-* Steps to upgrade master node *
+apt install kubeadm=1.18.0-00
+kubeadm upgrade apply v1.18.0
+
+apt install kubelet=1.18.0-00
+kubectl uncordon controlplane
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	Upgrade worker node
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+kubectl drain node01		## from controlplane terminal.
+
+ssh node01
+apt install kubeadm=1.18.0-00
+kubeadm upgrade node
+apt install kubelet=1.18.0-00
+exit
+
+kubectl uncordon node01		### from controlplane terminal
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	Backup and restore
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Backup using builtin snapshot utility 
+  $ ETCDCTL_API=3 etcdctl snapshot save snapshot01.db		### ### remember to specify --endpoints=" ",--cacert,--cert,--key  ; if running cmd on etcd which is on same master then no need apply endpoints. ##snapshotname: snapshot01.db; it is saved in pwd; specify path if required.
+  $ ls		### snapshot.db ; files in pwd
+  $ ETCDCTL_API=3 etcdctl snapshot status snapshot01.db
+
+* to restore ETCD cluster
+  $ service kube-apiserver stop		### stop kube-apiserver
+  $ ETCDCTL_API=3 etcdctl snapshot restore snapshot01.db --data-dir /var/lib/etcd-from-backup		
+  ### configure this new "--data-dir=/var/lib/etcd-from-backcup" in etcd.service
+  $ cd /etc/kubernetes/manifests/
+  $ vi etcd.yaml 	### volumes >hostPath >path:/varlib/etcd-from-backup
+  $ systemctl daemon-reload
+  $ service etcd restart
+  $ service kube-apiserver start
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
