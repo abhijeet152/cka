@@ -228,15 +228,16 @@ kubeadm upgrade apply v1.19.6		### v1.19.x
 	etcd data is stored at location=> /var/lib/etcd
 	--data-dir=/var/lib/etcd
 
-* Backup using builtin snapshot utility 
-  $ ETCDCTL_API=3 etcdctl snapshot save snapshot01.db		### ### remember to specify --endpoints=" ",--cacert,--cert,--key  ; if running cmd on etcd which is on same master then no need apply endpoints. ##snapshotname: snapshot01.db; it is saved in pwd; specify path if required.
+* Step -1:- Backup using builtin snapshot utility 
+  $ ETCDCTL_API=3 etcdctl snapshot save snapshot01.db		### remember to specify --endpoints=" ",--cacert,--cert,--key  ; if running cmd on etcd which is on same master then no need apply endpoints. ##snapshotname: snapshot01.db; it is saved in pwd; specify path if required.
   $ ls		### snapshot.db ; files in pwd
   $ ETCDCTL_API=3 etcdctl snapshot status snapshot01.db
 
-* to restore ETCD cluster
+* Step -2:- to restore ETCD cluster
   $ service kube-apiserver stop		### stop kube-apiserver
   $ ETCDCTL_API=3 etcdctl snapshot restore snapshot01.db --data-dir /var/lib/etcd-from-backup		
-  ### configure this new "--data-dir=/var/lib/etcd-from-backcup" in etcd.service
+
+* Step -3:- configure this "--data-dir=/var/lib/etcd-from-backcup" in etcd.service
   $ cd /etc/kubernetes/manifests/
   $ vi etcd.yaml 	### volumes >hostPath >path:/varlib/etcd-from-backup
   $ systemctl daemon-reload
