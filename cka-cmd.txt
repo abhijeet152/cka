@@ -513,6 +513,7 @@ kubectl uncordon node01		### from controlplane terminal
   $ service etcd restart
   $ service kube-apiserver start
 
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 

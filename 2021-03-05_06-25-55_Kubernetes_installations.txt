@@ -1,0 +1,174 @@
+Step1. Create 3 AWS instance -t2.medium- 2GB ram,2cpu ubuntu 16 with all trafic in security group.
+	-AMI -ubuntu 16.04, t2.medium, 3 instances,storage default, tagname:k8s_ , portno- all trafice, launch.
+
+	- launce 1st server.
+		-$ sudo -i
+		-$ apt-get udpate
+
+	- launce 2nd server.
+		-$ sudo -i
+		-$ apt-get udpate 
+
+	- launce 3rd server.
+		-$ sudo -i
+		-$ apt-get udpate
+
+
+_____________________________________________________________________________________________________________________
+
+Step2. install docker runtime all servers.
+	-Search "container run time" kubernetes
+	-install each steps in each machin
+#################################################\\
+
+# (Install Docker CE)
+## Set up the repository:
+### Install packages to allow apt to use a repository over HTTPS
+sudo apt-get update && sudo apt-get install -y \
+apt-transport-https ca-certificates curl software-properties-common gnupg2
+
+# Add Docker's official GPG key:
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key --keyring /etc/apt/trusted.gpg.d/docker.gpg add -
+
+# Add the Docker apt repository:
+sudo add-apt-repository \
+"deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+$(lsb_release -cs) \
+stable"
+
+# Install Docker CE
+sudo apt-get update && sudo apt-get install -y \
+containerd.io=1.2.13-2 \
+docker-ce=5:19.03.11~3-0~ubuntu-$(lsb_release -cs) \
+docker-ce-cli=5:19.03.11~3-0~ubuntu-$(lsb_release -cs)
+
+## Create /etc/docker
+sudo mkdir /etc/docker
+
+# Set up the Docker daemon
+cat <<EOF | sudo tee /etc/docker/daemon.json
+{
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m"
+  },
+  "storage-driver": "overlay2"
+}
+EOF
+
+# Create /etc/systemd/system/docker.service.d
+sudo mkdir -p /etc/systemd/system/docker.service.d
+
+# Restart Docker
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+
+sudo systemctl enable docker
+
+##########################################################//
+
+
+______________________________________________________________________________________________________
+
+Step3. install kubeadm, kubelet, kubectl on all servers.
+	-google search "install kubeadmn". On kubernetes website,
+	- install the steps in each node.
+#######################################################\\
+
+sudo apt-get update && sudo apt-get install -y apt-transport-https curl
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+cat <<EOF | sudo tee /etc/apt/sources.list.d/kubernetes.list
+deb https://apt.kubernetes.io/ kubernetes-xenial main
+EOF
+sudo apt-get update
+sudo apt-get install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+
+######################################################//
+
+### kubectl get pods
+### kubectl apply --filename https://git.io/weave-kube-1.6
+
+_______________________________________________________________________________________
+
+Step4. make any one server as master, remain will be worker nodes.
+########################################################
+
+### To make master node.1st ec2
+kubeadm init
+
+### copy the above things in notepad. it requires to execute the commands on master itself
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+kubectl get nodes	# to check no of nodes present
+
+### execute on all nodes, work node1 and work node2
+### *join* command from copied text
+
+### on master
+kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+
+############################################################ 
+copy pasted from terminal
+----------------------------------------------------------
+Your Kubernetes control-plane has initialized successfully!
+
+### on master node
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Alternatively, if you are the root user, you can run:
+
+  export KUBECONFIG=/etc/kubernetes/admin.conf
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+### on worker node
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join 172.31.71.142:6443 --token komu0c.f5n1t1toc4x7ff4g \
+--discovery-token-ca-cert-hash sha256:63359e883da7c35d83efdae7260e4a26fa886cde9b0af21d8834bb2134356938
+
+--------------------------------------------------------------
+____________________________________________________________________________________________
+Step5. create single pod in nodes by master with minifest file.
+$ vi mypod.yml
+############################################################
+apiVersion: v1
+kind: Pod
+metadata:
+   name: hello-pod
+spec:
+   containers:
+   -
+      name: first-container
+      image: nginx
+      ports: 
+      -	
+         containerPort: 80
+
+##############################################################
+
+### on master server
+kubectl create -f mypod.yml
+kubectl get pods
+kubectl get pods -o wide		# to see the details.
+
+### commands related pods
+kubectl get nodes
+kubectl create -f pod.yml
+kubectl get pods
+kubectl get pods -o wide
+kubectl get pods/hello-pod
+kubectl get pods --all-namespaces
+kubectl delete pods/hello-pod
+

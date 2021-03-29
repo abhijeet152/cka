@@ -1,0 +1,261 @@
+* Kubernetes Architecture
+* Master Node:-
+  kube-apiserver:- it is the main component, the front end for the Kubernetes control plane.// All talk with apiserver to interact with kubernetes cluster.
+  etcd:- it is database which  stores value in key-value format, backing store of all cluster data.// Stores all data use to manage cluster.
+  kubelet:- it is an agent which runs on each node of cluster, this agent is responsible to make sure the containers are running on the node as expected.
+  scheduler:- it schedules the newly created containers to nodes.
+  controller:- if the container/node goes down, in such cases controller makes decission to bring up new containers.
+  container runtime:- underlying software/framework that is use to run applications in containers; docker in our case.;others rocker or crio.
+
+* Worker Node:-
+  kubelet:- interacts with master(kube-apiserver) to provide health information of the worker node, and carry out the action requested by the master node.
+  kubeproxy:- 
+
+* Kubectl: It is command line utility used to manage the kubernetes cluster
+
+* Setup Kubernetes:
+Minikube:- to run single node Kubernetes in local environment
+MicroK8s
+Kubeadm:- to run multi node Kubernetes in local environment/own premises.
+
+* On Cloud:
+GCP (Google Cloud Provider):- GKE:- instant way of setting up a permanent kubernetes cluster
+AWS
+Microsoft Azure
+
+* Setting Minikube: Kubernetes.io
+1. Install kubectl
+2. Install hypervisor-type-2 
+3. Install minikube
+
+* Multicontainer in POD: it is a rare usecase
+
+* Kubernetes manages Pods rather than managing the containers directly.
+* Some Pods have init containers as well as app containers. Init containers run and complete before the app containers are started.
+* Pods natively provide two kinds of shared resources for their constituent containers: networking and storage.
+* The Pod remains on that node until the Pod finishes execution, the Pod object is deleted, the Pod is evicted for lack of resources, or the node fails.
+* Restarting a container in a Pod should not be confused with restarting a Pod. A Pod is not a process, but an environment for running container(s). A Pod persists until it is deleted.
+
+
+* Taints & toleration: 
+if we use taints & toleration to schedule our pods then this will only restrict the unwanted pods to schedule on our tainted nodes.
+There is no guarantee that pods (which has toleration) will run on required nodes. These pods may run on different node.
+
+* Node Affinity: 
+if we use node affinity to schedule our pods on req. node then this will deploy our required pods on required nodes, but it will also deploy other unwanted pods on the req. node.
+
+To resolve this issue,we need to use both (taints- toleration and node affinity) in combination.
+  
+
+* DaemonSets:
+it ensure that the copy of pod is running on each node, if node joins the cluster the pod is created on it, if node destroys then the pod is distroyed.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	Application lifecycle
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Secrets: use to store valueable data like passwords etc.
+There are two steps to configure secrets.
+1. create a secret		### ensure that the passwords are store in encoded format (base64)
+2. inject a secret in pod-definition file.
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	Cluster Maintenance
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubernetes version: v1.13.0
+V1- major update
+13- minor updates
+0 - patches
+
+Cluster uppgrade process:
+kube-apiserver = x ; should be the latest version then other components like controller-manager, kube-scheduler, kubelet, kube-proxy
+control-manager, kube-scheduler = x-1 ; one less then kube-apiserver version can be allowed.
+kubelet, kube-proxy = x-2 ; upto 2 less then kube-apiserver version can be allowed.
+kubectl = x>1 to x-1 ; one greater then,equal, one less then kube-apiserver version can be allowed.
+
+Recommended: upgrade one level up at time 
+
+-Cluster from Katakoda. A master and a node.
+~~~~~~~~~~~~~~~~~~~~~~~
+upgrading master node.
+~~~~~~~~~~~~~~~~~~~~~~~
+##################
+upgrading cluster
+
+on Controlplane perform below tasks:-
+1. upgraded kubeadm for all controlplane node
+2. drain controlplane node one by one.
+3. upgrade the kubelet and kubectl on all control pane nodes.
+4. restart Daemon and kubectl
+5. uncordon the controlplane node to schedule new pods
+
+while upgrading on workernode perform below tasks:-
+1. from worker node terminal:- upgraded kubeadm for all worker node
+2. from controlplane terminal:- drain worker node one by one
+3. from worker node terminal:- upgrade the kubelet and kubectl on all worker nodes.
+4. from worker node terminal:- restart Daemon and kubectl
+5. from control plane:- uncordon the worker nodes to schedule new pods
+
+####################
+upgrading master/controlplane node:-
+
+Step (1):- drain the controlplane node
+	kubectl drain controlplane --ignore-daemonsets		### here controlplane name is "controlplane"check controlplane name
+
+Step (2):- update and check for available upgrade list
+	apt update
+	apt-cache madison kubeadm
+
+Step (3):- update kubeadm on control plane and other controlplane (edit version required- make sure v= v+1 only)		### replace x in 1.19.x-00 with the latest patch version
+	apt-mark unhold kubeadm && \
+	apt-get update && apt-get install -y kubeadm=1.19.x-00 && \
+	apt-mark hold kubeadm && \
+	kubeadm version && \
+	kubeadm upgrade plan && \
+	kubeadm upgrade apply v1.19.x		### v1.19.6; needs -y
+
+#$ sudo kubeadm upgrade node	### upgrade additional control pane nodes
+
+
+Step (4):- upgrade the kubelet and kubectl on all control pane nodes.		### replace x in 1.19.x-00 with the latest patch version
+	apt-mark unhold kubelet kubectl && \
+	apt-get update && apt-get install -y kubelet=1.19.x-00 kubectl=1.19.x-00 && \
+	apt-mark hold kubelet kubectl
+
+Step (5):- reload daemon and restart kubelet on controlplane
+	sudo systemctl daemon-reload && \
+	sudo systemctl restart kubelet
+
+Step (6):- uncordon controlplane
+	kubectl uncordon controlplane		### controlplanename=controlplane; successfully upgraded,and node is ready to schedule new pods.
+
+###################
+upgrading worker node(remember to switch proper node):-
+
+Step (1):- from ""controlplane terminal"", drain the worker node
+
+	kubectl drain node01 --ignore-daemonsets		### workernode=node01
+
+
+Step (2):- from ""workernode terminal(root)"", upgrade kubeadm of worker nodes		### replace x in 1.19.x-00 with the latest patch version
+	
+	apt-mark unhold kubeadm && \
+	apt-get update && apt-get install -y kubeadm=1.19.x-00 && \
+	apt-mark hold kubeadm 
+
+
+Step (3):- from ""workernode terminal"", upgrade kubelet configuration
+	
+	kubeadm upgrade node
+
+
+Step (4):- from ""workernode terminal"", Upgrade kubelet and kubectl configuration
+	
+	apt-mark unhold kubelet kubectl && \
+	apt-get update && apt-get install -y kubelet=1.19.x-00 kubectl=1.19.x-00 && \
+	apt-mark hold kubelet kubectl
+
+Step (5):- from ""workernode terminal", reload daemon and restart kubelet
+	
+	sudo systemctl daemon-reload && \
+	sudo systemctl restart kubelet
+
+Step (6):- from controlplane terminal, uncordon worker node
+	kubectl uncordon node01		### workernode = node01
+
+#################################
+## mumshad steps ##
+## for master node
+kubectl drain controlplane --ignore-daemonsets
+
+apt install kubeadm=1.18.0-00
+kubeadm upgrade apply v1.18.0
+
+apt install kubelet=1.18.0-00
+kubectl uncordon controlplane
+
+## for worker node
+kubectl drain node01		## from controlplane terminal.
+
+ssh node01
+apt install kubeadm=1.18.0-00
+kubeadm upgrade node
+apt install kubelet=1.18.0-00
+exit
+
+kubectl uncordon node01		### from controlplane terminal
+
+\\
+kubectl upgrade plan
+kubectl drain controlplane
+apt-get upgrade -y kubeadm=1.12.0-00		### upgrade one level up at a time ; upgrade kubeadm
+kubeadm upgrade apply v1.12.0		### upgrade on master server
+
+kubectl get nodes		### if kubelet is present on master node,it will still show old version, until we upgrade kubelet
+
+apt-get upgrade -y kubelet=1.12.0-00		## upgrade kubelet
+
+systemctl daemon-reload
+systemctl restart kubelet
+
+~~~
+kubectl drain node-1		### run only from master node.
+apt-get upgrade -y kubeadm=1.12.0-00
+apt-get upgrade -y kubelet=1.12.0-00
+kubeadm upgrade node config --kubelet-version v1.12.0		### upgrade worker node 
+systemctl restart kubelet
+kubectl uncordon node-1
+~~~
+//
+
+* Steps to upgrade master node *
+kubeadm upgrade plan
+kubeadm upgrade apply v1.19.6		### v1.19.x
+#################################
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	Backup and restore
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Backup manualy of cluster
+  $ kubectl get all --all-namespaces -o yaml > all-deploy-services.yaml
+
+* Backup using tool Velero.
+
+* Backup of etcd.
+	etcd data is stored at location=> /var/lib/etcd
+	--data-dir=/var/lib/etcd
+
+* Backup using builtin snapshot utility 
+  $ ETCDCTL_API=3 etcdctl snapshot save snapshot01.db		### ### remember to specify --endpoints=" ",--cacert,--cert,--key  ; if running cmd on etcd which is on same master then no need apply endpoints. ##snapshotname: snapshot01.db; it is saved in pwd; specify path if required.
+  $ ls		### snapshot.db ; files in pwd
+  $ ETCDCTL_API=3 etcdctl snapshot status snapshot01.db
+
+* to restore ETCD cluster
+  $ service kube-apiserver stop		### stop kube-apiserver
+  $ ETCDCTL_API=3 etcdctl snapshot restore snapshot01.db --data-dir /var/lib/etcd-from-backup		
+  ### configure this new "--data-dir=/var/lib/etcd-from-backcup" in etcd.service
+  $ cd /etc/kubernetes/manifests/
+  $ vi etcd.yaml 	### volumes >hostPath >path:/varlib/etcd-from-backup
+  $ systemctl daemon-reload
+  $ service etcd restart
+  $ service kube-apiserver start
+
+* to check the version
+  $ etcdctl version
+
+
+
+
+
+
+
+
+
+
+
+
+
+

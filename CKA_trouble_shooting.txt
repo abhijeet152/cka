@@ -1,0 +1,37 @@
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+### uninstall kubernetes
+kubeadm reset -f
+rm -rf /etc/cni /etc/kubernetes /var/lib/dockershim /var/lib/etcd /var/lib/kubelet /var/run/kubernetes ~/.kube/*
+iptables -F && iptables -X
+iptables -t nat -F && iptables -t nat -X
+iptables -t raw -F && iptables -t raw -X
+iptables -t mangle -F && iptables -t mangle -X
+systemctl restart docker
+
+kubeadm reset
+sudo apt-get purge kubeadm kubectl kubelet kubernetes-cni kube*   
+sudo apt-get autoremove  
+sudo rm -rf ~/.kube
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+** by mistake we reset master by $kubeadm init do the below steps.
+From [kubernetes][1] official site:
+
+Verify that the $HOME/.kube/config file contains a valid certificate, and regenerate a certificate
+Unset the KUBECONFIG environment variable using:
+
+	$ unset KUBECONFIG
+
+Or set it to the default KUBECONFIG location:
+
+	$ export KUBECONFIG=/etc/kubernetes/admin.conf
+
+Another workaround is to overwrite the existing kubeconfig for the “admin” user:
+
+	$ mkdir $HOME/.kube
+	$ sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+	$ sudo chown $(id -u):$(id -g) $HOME/.kube/config```
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
