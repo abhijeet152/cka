@@ -1,4 +1,7 @@
 # Dashboard available externally on HTTP
+# deploy dashboard
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.3.1/aio/deploy/recommended.yaml
+
 
 * We will edit the deployment called "kubernetes-dashboard"
 $ kubectl -n kubernetes-dashboard edit deploy kubernetes-dashboard
