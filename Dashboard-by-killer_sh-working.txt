@@ -1,0 +1,57 @@
+# Dashboard available externally on HTTP
+
+* We will edit the deployment called "kubernetes-dashboard"
+$ kubectl -n kubernetes-dashboard edit deploy kubernetes-dashboard
+
+.spec.template.spec
+---
+- args:
+  - --insecure-port=9090
+  #- --auto-generate-certificate
+
+  #remove livenessProbe or adjust to http 9090
+  # change container port to 9090 (.spec.template.spec.containerPort)
+---
+
+
+
+# view if the changes are applied on pods (pod recreated?)
+$ kubectl -n kubernetes-dashboard get pods
+
+
+
+# edit svc type to NodePort
+$ kubectl -n kubernetes-dashboard edit svc kubernetes-dashboard
+
+.spec
+---
+  type: NodePort
+  ports:
+  - port: 9090
+    protocol: TCP
+    targetPort: 9090
+---
+
+
+
+# get the nodeport from service 
+$ kubectl -n kubernetes-dashboard get svc
+
+* copy nodePort & the external ip where dashboard is deployed
+
+
+
+# give more permissions to service account
+$ kubectl -n kubernetes-dashboard sa
+
+
+$ kubectl -n kubernetes-dashboard create rolebinding insecure \
+--serviceaccount kubernetes-dashboard:kubernetes-dashboard \
+--clusterrole view
+
+
+$ kubectl -n kubernetes-dashboard create clusterrolebinding insecure \
+--serviceaccount kubernetes-dashboard:kubernetes-dashboard \
+--clusterrole view
+
+
