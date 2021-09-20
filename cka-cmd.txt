@@ -511,7 +511,83 @@ kubectl uncordon node01		### from controlplane terminal
   $ service etcd restart
   $ service kube-apiserver start
 
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+reset/uninstall kubernetes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+soft reset
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+kubeadm reset -f
+rm -rf /etc/cni /etc/kubernetes /var/lib/dockershim /var/lib/etcd /var/lib/kubelet /var/run/kubernetes ~/.kube/*
+iptables -F && iptables -X
+iptables -t nat -F && iptables -t nat -X
+iptables -t raw -F && iptables -t raw -X
+iptables -t mangle -F && iptables -t mangle -X
+systemctl restart docker
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+other way soft reset
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+sudo kubeadm reset -f && 
+ sudo systemctl stop kubelet && 
+ sudo systemctl stop docker && 
+ sudo rm -rf /var/lib/cni/ && 
+ sudo rm -rf /var/lib/kubelet/* && 
+ sudo rm -rf /etc/cni/ && 
+ sudo ifconfig cni0 down && 
+ sudo ifconfig flannel.1 down && 
+ sudo ifconfig docker0 down && 
+ sudo ip link delete cni0 && 
+ sudo ip link delete flannel.1
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+hard reset
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+kubeadm reset
+sudo apt-get purge kubeadm kubectl kubelet kubernetes-cni kube*   
+sudo apt-get autoremove  
+sudo rm -rf ~/.kube
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+kubernetes master initialise
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubeadm init --pod-network-cidr=192.168.0.0/16 --apiserver-advertise-address=192.168.56.2
+
+
+** by mistake we reset master by $kubeadm init do the below steps.
+From [kubernetes][1] official site:
+
+Verify that the $HOME/.kube/config file contains a valid certificate, and regenerate a certificate
+Unset the KUBECONFIG environment variable using:
+
+	$ unset KUBECONFIG
+
+Or set it to the default KUBECONFIG location:
+
+	$ export KUBECONFIG=/etc/kubernetes/admin.conf
+
+Another workaround is to overwrite the existing kubeconfig for the “admin” user:
+
+	$ mkdir $HOME/.kube
+	$ sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+	$ sudo chown $(id -u):$(id -g) $HOME/.kube/config
+	
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Networking Solution for kubernetes:- Calico / Weavenet
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Calico:-
+kubectl apply -f https://docs.projectcalico.org/v3.0/getting-started/kubernetes/installation/hosted/kubeadm/1.7/calico.yaml
+
+Weavenet:-
+kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+
+
+
+
+
 
 
 
