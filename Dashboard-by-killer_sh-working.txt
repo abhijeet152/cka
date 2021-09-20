@@ -36,7 +36,7 @@ $ kubectl -n kubernetes-dashboard edit svc kubernetes-dashboard
 
 
 
-# get the nodeport from service 
+# get the details of nodeport from service 
 $ kubectl -n kubernetes-dashboard get svc
 
 * copy nodePort & the external ip where dashboard is deployed
