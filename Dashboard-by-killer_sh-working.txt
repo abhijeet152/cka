@@ -10,6 +10,7 @@ $ kubectl -n kubernetes-dashboard edit deploy kubernetes-dashboard
 - args:
   - --insecure-port=9090
   #- --auto-generate-certificates
+  #- --enable-insecure-login
 
   #remove livenessProbe or adjust to http 9090
   # change container port to 9090 (.spec.template.spec.containerPort)
