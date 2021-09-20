@@ -707,7 +707,8 @@ snapshot save /opt/snapshot-pre-boot.db 		### ### remember to specify --endpoint
 
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-reset/uninstall kubernetes
+reset/uninstall 
+kubernetes reset
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
